@@ -22,19 +22,19 @@ jobs:
           set -euo pipefail
 
           install -m 700 -d "$HOME/.ssh"
+
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/lh_deploy_key"
           chmod 600 "$HOME/.ssh/lh_deploy_key"
 
           printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Test SSH and WordPress path
+      - name: Diagnose SSH and WordPress paths
         shell: bash
         env:
           SSH_HOST: ${{ secrets.LH_SSH_HOST }}
           SSH_PORT: ${{ secrets.LH_SSH_PORT }}
           SSH_USER: ${{ secrets.LH_SSH_USER }}
-          REMOTE_PATH: ${{ secrets.LH_REMOTE_PATH }}
         run: |
           set -euo pipefail
 
@@ -44,4 +44,17 @@ jobs:
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
-            "test -d '${REMOTE_PATH}/wp-content/themes/salient' && echo 'SSH OK - katalog WordPress istnieje'"
+            'echo "SSH OK";
+             echo "Uzytkownik: $(whoami)";
+             echo "HOME: $HOME";
+             echo "PWD: $(pwd)";
+             echo "--- public_html ---";
+             ls -la "$HOME/public_html";
+             echo "--- twojmotylek.pl ---";
+             ls -la "$HOME/public_html/twojmotylek.pl";
+             if [ -d "$HOME/public_html/twojmotylek.pl/wp-content/themes/salient" ]; then
+               echo "OK - katalog Salient istnieje";
+             else
+               echo "BLAD - katalog Salient nie istnieje pod oczekiwana sciezka";
+               exit 1;
+             fi'
