@@ -1,1 +1,47 @@
+name: Test SSH connection
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-ssh:
+    name: Test connection to LH.pl
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Configure SSH
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.LH_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.LH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/lh_deploy_key"
+          chmod 600 "$HOME/.ssh/lh_deploy_key"
+
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Test SSH and WordPress path
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.LH_SSH_HOST }}
+          SSH_PORT: ${{ secrets.LH_SSH_PORT }}
+          SSH_USER: ${{ secrets.LH_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.LH_REMOTE_PATH }}
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i "$HOME/.ssh/lh_deploy_key" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "test -d '${REMOTE_PATH}/wp-content/themes/salient' && echo 'SSH OK - katalog WordPress istnieje'"
